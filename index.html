@@ -14,7 +14,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script>document.documentElement.classList.add('js'); if (matchMedia('(pointer: coarse)').matches) document.documentElement.classList.add('touch');</script>
+  <script>
+    // Max motion is the default for everyone. Visitors can switch it off in the footer (remembered per browser).
+    document.documentElement.classList.add('js');
+    if (matchMedia('(pointer: coarse)').matches) document.documentElement.classList.add('touch');
+    try { if (localStorage.getItem('motion') === 'off') document.documentElement.classList.add('reduced'); } catch (e) {}
+  </script>
   <script type="importmap">
     { "imports": {
       "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -380,6 +385,7 @@
       <div><p class="mono">Clinic</p><p>Neuro &amp; Spine Clinic<br>Demthring, Shillong 793014</p></div>
       <div><p class="mono">Surgery</p><p>Supercare Hospital<br>Demthring, Shillong</p></div>
       <div><p class="mono">Explore</p><p><a class="link" href="#doctor">Doctor</a> · <a class="link" href="#care">Care</a> · <a class="link" href="#visit">Visit</a></p></div>
+      <div><p class="mono">Motion</p><p><button class="motion-toggle link" type="button" aria-pressed="true">On <span class="motion-toggle__hint">· turn off</span></button></p></div>
       <div><p class="mono">Back to</p><p><a class="link" href="#top">Top <iconify-icon icon="solar:arrow-up-linear" aria-hidden="true"></iconify-icon></a></p></div>
     </div>
     <p class="foot__legal mono">Concept demo prepared for Dr. Bernard T. Lyngdoh. Details come from public listings and must be confirmed by the clinic. Location photos: Google Maps contributors, for preview only. Portrait: HexaHealth listing. Conference banner: INDSPNCON 2024 / Docthub. Quote: The Shillong Times, 20 Oct 2016. This site does not give medical advice.</p>

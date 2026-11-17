@@ -438,7 +438,7 @@ html:not(.js) .card__seg, .reduced .card__seg { position: static; margin-bottom:
 .foot__big { display: flex; justify-content: space-between; font-family: var(--serif); font-size: clamp(2.4rem, 17vw, 23rem); line-height: .8; letter-spacing: -.03em; overflow: hidden; padding: 0 .08em .04em 0; }
 .foot__big span { display: inline-block; }
 .foot__big span:last-child { color: var(--signal); font-style: italic; }
-.foot__cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: clamp(40px, 6vw, 80px); padding-top: 28px; border-top: 1px solid var(--line-dark); }
+.foot__cols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-top: clamp(40px, 6vw, 80px); padding-top: 28px; border-top: 1px solid var(--line-dark); }
 .foot__cols .mono { opacity: .5; margin: 0 0 10px; }
 .foot__cols p { margin: 0; }
 .foot__legal { margin: 48px 0 0; opacity: .42; font-size: .64rem; line-height: 1.8; max-width: 120ch; text-transform: none; letter-spacing: .02em; }
@@ -449,13 +449,12 @@ html:not(.js) .card__seg, .reduced .card__seg { position: static; margin-bottom:
 .js .reduced [data-reveal-img] .doctor__frame, .reduced [data-reveal-img] .doctor__frame { clip-path: none; }
 
 /* ---------- Reduced motion ---------- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
-  .js .loader { display: none; }
-  .js [data-reveal-img] .doctor__frame { clip-path: none; }
-  .quote__text .qw { opacity: 1 !important; }
-  .cursor { display: none !important; }
-}
+/* Calm mode: only when the visitor switches motion off (footer). System "reduce motion" no longer forces it. */
+html.reduced *, html.reduced *::before, html.reduced *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+html.reduced .loader { display: none !important; }
+html.reduced [data-reveal-img] .doctor__frame { clip-path: none; }
+html.reduced .quote__text .qw { opacity: 1 !important; }
+html.reduced .cursor { display: none !important; }
 
 /* ---------- Path CTA ---------- */
 .path__cta { display: flex; justify-content: flex-end; max-width: 1100px; margin: 48px 0 0 auto; }
@@ -503,3 +502,7 @@ html:not(.js) .card__seg, .reduced .card__seg { position: static; margin-bottom:
 .touch .reel__item { flex: 0 0 auto; scroll-snap-align: start; height: 260px; }
 .touch .reel__item img { transform: none; }
 .touch .hero__canvas { will-change: opacity; }
+
+/* ---------- Motion switch ---------- */
+.motion-toggle { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+.motion-toggle__hint { opacity: .5; }

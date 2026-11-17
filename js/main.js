@@ -1,7 +1,8 @@
 /* global gsap, ScrollTrigger, Lenis */
 // Motion system: GSAP + ScrollTrigger, Lenis as the ONLY smooth-scroll engine.
 const gsapOK = typeof window.gsap !== 'undefined' && typeof window.ScrollTrigger !== 'undefined' && typeof window.Lenis !== 'undefined';
-const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Max motion by default; only the visitor's own footer switch turns it off.
+const reduce = document.documentElement.classList.contains('reduced');
 const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const root = document.documentElement;
 const $ = (s, c = document) => c.querySelector(s);
@@ -74,6 +75,18 @@ function splitWords(el) {
     const status = $('.hours__status');
     if (status) status.textContent = open && mins >= open[0] && mins < open[1] ? '● Open now (Shillong time)' : '○ Closed now (Shillong time)';
   } catch (e) { /* non-critical */ }
+})();
+
+// Motion on/off switch (remembered per browser)
+(function motionSwitch() {
+  const b = $('.motion-toggle'); if (!b) return;
+  const off = root.classList.contains('reduced');
+  b.setAttribute('aria-pressed', String(!off));
+  b.innerHTML = off ? 'Off <span class="motion-toggle__hint">· turn on</span>' : 'On <span class="motion-toggle__hint">· turn off</span>';
+  b.addEventListener('click', () => {
+    try { localStorage.setItem('motion', off ? 'on' : 'off'); } catch (e) {}
+    location.reload();
+  });
 })();
 
 // Care cards preselect the matching concern in the form
