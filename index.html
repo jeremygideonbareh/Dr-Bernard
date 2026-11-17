@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  <script>document.documentElement.classList.add('js');</script>
+  <script>document.documentElement.classList.add('js'); if (matchMedia('(pointer: coarse)').matches) document.documentElement.classList.add('touch');</script>
   <script type="importmap">
     { "imports": {
       "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -267,10 +267,11 @@
         <p class="eyebrow mono"><span class="idx">04</span>Find the clinic</p>
         <h2 class="h2" data-split>In Demthring, <em>beside the rock face,</em> under the white sign.</h2>
       </div>
+      <p class="reel__hint mono" aria-hidden="true">Swipe the photos <iconify-icon icon="solar:arrow-right-linear"></iconify-icon></p>
       <div class="reel" aria-label="Photos of the clinic and its surroundings">
         <div class="reel__row" data-speed="-1">
           <figure class="reel__item"><img src="assets/img/sign.webp" alt="Signboard reading Dr Bernard T. Lyngdoh's Neuro and Spine Clinic, Shillong" loading="lazy" width="1800" height="1350"><figcaption class="mono">Look for the sign</figcaption></figure>
-          <figure class="reel__item reel__item--w"><img src="assets/img/facade.webp" alt="The clinic building with its white signboard across the top floor" loading="lazy" width="1800" height="845"><figcaption class="mono">The building</figcaption></figure>
+          <figure class="reel__item reel__item--w"><img src="assets/img/facade.webp" alt="The clinic building with its white signboard across the top floor" loading="eager" width="1800" height="845"><figcaption class="mono">The building</figcaption></figure>
           <figure class="reel__item reel__item--t"><img src="assets/img/front-tall.webp" alt="The clinic front seen from the forecourt" loading="lazy" width="1012" height="1800"><figcaption class="mono">From the forecourt</figcaption></figure>
           <figure class="reel__item reel__item--w"><img src="assets/img/stairs.webp" alt="Side staircase leading up to the clinic floor" loading="lazy" width="1800" height="845"><figcaption class="mono">Up the side stairs</figcaption></figure>
         </div>

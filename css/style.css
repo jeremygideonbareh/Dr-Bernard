@@ -243,7 +243,7 @@ em { font-family: var(--serif); font-style: italic; font-weight: 400; }
   .hero__facts div:last-child { grid-column: 1 / -1; }
   .hero__scroll { display: none; }
   .hero__poster { right: -20%; opacity: .35; }
-  .hero__canvas canvas { opacity: .28; }
+  .hero__canvas canvas { opacity: .5; }
 }
 
 /* ---------- Marquee ---------- */
@@ -488,3 +488,18 @@ html:not(.js) .card__seg, .reduced .card__seg { position: static; margin-bottom:
   .reel__item img { transition: none; }
   .card, .card__seg, .tile { will-change: auto; }
 }
+
+/* ---------- Touch: photo reels are native swipe carousels ---------- */
+.reel__hint { display: none; }
+.touch .reel__hint { display: inline-flex; align-items: center; gap: 8px; margin: -24px var(--gutter) 18px; opacity: .6; }
+.touch .reel__row {
+  width: auto; margin-left: 0 !important; transform: none !important;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding: 0 var(--gutter); scroll-padding-inline: var(--gutter);
+  touch-action: pan-x pan-y;
+}
+.touch .reel__row::-webkit-scrollbar { display: none; }
+.touch .reel__item { flex: 0 0 auto; scroll-snap-align: start; height: 260px; }
+.touch .reel__item img { transform: none; }
+.touch .hero__canvas { will-change: opacity; }

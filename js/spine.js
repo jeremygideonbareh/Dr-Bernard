@@ -189,12 +189,14 @@ export function createSpine(container, { onReady } = {}) {
   document.addEventListener('pointerleave', onLeave);
 
   // layout
+  let fan = 1;
   function layout() {
     const w = container.clientWidth, h = container.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.position.z = w / h > 1.2 ? 25 : 22; camera.updateProjectionMatrix();
     const narrow = w < 760;
-    root.position.set(narrow ? 2.4 : 5.2 * Math.min(1.3, camera.aspect / 1.6), 0.2, 0);
+    fan = narrow ? 0 : 1;   // phones: column stays intact, it only turns and fades
+    root.position.set(narrow ? 3.0 : 5.2 * Math.min(1.3, camera.aspect / 1.6), 0.2, 0);
     root.scale.setScalar(narrow ? 0.9 : 1);
   }
   const ro = new ResizeObserver(layout); ro.observe(container); layout();
@@ -217,7 +219,7 @@ export function createSpine(container, { onReady } = {}) {
   renderer.domElement.addEventListener('webglcontextrestored', () => { lost = false; container.closest('.hero')?.classList.add('has-webgl'); });
 
   const clock = new THREE.Clock();
-  let t = 0;
+  let t = 0, exS = 0;
   function tick() {
     if (!running) return;
     raf = requestAnimationFrame(tick);
@@ -227,20 +229,21 @@ export function createSpine(container, { onReady } = {}) {
     pointer.x += (pointer.tx - pointer.x) * 0.06;
     pointer.y += (pointer.ty - pointer.y) * 0.06;
 
-    const a = params.assemble, ex = params.explode;
+    exS += (params.explode - exS) * Math.min(1, dt * 6);
+    const a = params.assemble, ex = exS;
     for (const v of verts) {
       // per-vertebra eased assembly, staggered top->bottom
       const local = Math.min(1, Math.max(0, a * 1.6 - v.i / 24 * 0.6));
       const k = 1 - Math.pow(1 - local, 3);
       const side = v.i % 2 ? 1 : -1;
-      const exX = side * ex * (0.6 + (v.i / 24) * 2.4);
-      const exR = ex * side * 0.45;
+      const exX = side * ex * fan * (0.6 + (v.i / 24) * 2.4);
+      const exR = ex * side * 0.45 * fan;
       const breathe = Math.sin(t * 1.2 + v.i * 0.35) * 0.03 * k;
       const m = v.mesh;
       m.position.set(
         v.start.x + (v.target.x - v.start.x) * k + exX,
         v.start.y + (v.target.y - v.start.y) * k + breathe,
-        v.start.z + (v.target.z - v.start.z) * k + ex * Math.sin(v.i) * 1.5
+        v.start.z + (v.target.z - v.start.z) * k + ex * fan * Math.sin(v.i) * 1.5
       );
       m.rotation.set(
         v.start.rx + (v.target.rx - v.start.rx) * k + exR * 0.4,

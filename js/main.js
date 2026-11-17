@@ -24,6 +24,9 @@ const SCROLL_MAP = {
   visit: { travel: .55 },               // photo reels move less, so captions are readable
   blend: .55                            // colour blend zone between sections (viewport heights)
 };
+// Phones: pins fight native touch scrolling (jitter), so the hero/quote hold without pinning.
+const touch = window.matchMedia('(pointer: coarse)').matches;
+if (touch) { SCROLL_MAP.hero.hold = 0; SCROLL_MAP.quote.hold = 0; }
 
 
 /* ------------------------------------------------------------------
@@ -175,7 +178,7 @@ function initMotion() {
   }));
 
   // Hero hold pin — created first so every later trigger measures with its spacing.
-  ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * SCROLL_MAP.hero.hold, pin: true, pinSpacing: true });
+  if (SCROLL_MAP.hero.hold > 0) ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * SCROLL_MAP.hero.hold, pin: true, pinSpacing: true });
 
   /* ---------------- Nav: hide on scroll down, active link ---------------- */
   const nav = $('[data-nav]');
@@ -289,10 +292,10 @@ function initMotion() {
       gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * (1 + SCROLL_MAP.hero.hold), scrub: 1 } })
         .to(p, { explode: 1, rotY: 1.6, glow: .6, ease: 'none' }, 0);
       // stop rendering WebGL once the canvas has faded out
-      ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * (.65 + SCROLL_MAP.hero.hold), onToggle: (s) => sp.setActive(s.isActive) });
+      ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * ((touch ? .9 : .65) + SCROLL_MAP.hero.hold), onToggle: (s) => sp.setActive(s.isActive) });
     });
     // ...and the canvas fades out before the pieces can drift over the facts / next section
-    gsap.to('.hero__canvas', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: () => window.innerWidth < 760 ? 'top top' : '25% top', end: () => window.innerWidth < 760 ? '40% top' : '65% top', scrub: true, invalidateOnRefresh: true } });
+    gsap.to('.hero__canvas', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: () => window.innerWidth < 760 ? 'top top' : '25% top', end: () => window.innerWidth < 760 ? '85% top' : '65% top', scrub: true, invalidateOnRefresh: true } });
     // hero copy drifts upward on scroll (parallax)
     gsap.to('.hero__inner', { yPercent: -14, ease: 'none', scrollTrigger: { trigger: '.hero', start: () => 'top+=' + window.innerHeight * SCROLL_MAP.hero.hold + ' top', end: () => '+=' + window.innerHeight, scrub: true, invalidateOnRefresh: true } });
     gsap.to('.hero__facts', { yPercent: -60, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: '30% top', end: 'bottom top', scrub: true } });
@@ -349,8 +352,10 @@ function initMotion() {
     q.setAttribute('aria-label', text);
     q.innerHTML = text.split(' ').map(w => `<span class="qw" aria-hidden="true">${w}</span>`).join(' ');
     const sec = q.closest('section');
-    gsap.to($$('.qw', q), { opacity: 1, stagger: .1, ease: 'none', scrollTrigger: {
-      trigger: sec, start: 'center center', end: () => '+=' + window.innerHeight * SCROLL_MAP.quote.hold, scrub: .6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
+    const qst = SCROLL_MAP.quote.hold > 0
+      ? { trigger: sec, start: 'center center', end: () => '+=' + window.innerHeight * SCROLL_MAP.quote.hold, scrub: .6, pin: true, anticipatePin: 1, invalidateOnRefresh: true }
+      : { trigger: q, start: 'top 85%', end: 'bottom 40%', scrub: .5 };
+    gsap.to($$('.qw', q), { opacity: 1, stagger: .1, ease: 'none', scrollTrigger: qst });
     gsap.from(q, { x: () => -window.innerWidth * .05, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'center center', scrub: true } });
   });
 
@@ -404,14 +409,14 @@ function initMotion() {
   });
 
   /* ---------------- Visit: opposing horizontal reels ---------------- */
-  $$('.reel__row').forEach((row) => {
+  if (!touch) $$('.reel__row').forEach((row) => {
     const s = +row.dataset.speed;
     gsap.fromTo(row, { x: () => s < 0 ? 0 : -window.innerWidth * .05 }, {
       x: () => s < 0 ? -(row.scrollWidth - window.innerWidth) * SCROLL_MAP.visit.travel : window.innerWidth * .3 * SCROLL_MAP.visit.travel,
       ease: 'none', scrollTrigger: { trigger: '.reel', start: 'top bottom', end: 'bottom top', scrub: 1, invalidateOnRefresh: true }
     });
   });
-  $$('.reel__item').forEach((it) => {
+  if (!touch) $$('.reel__item').forEach((it) => {
     gsap.from(it, { clipPath: 'inset(12% 12% 12% 12% round 18px)', duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: '.reel', start: 'top 85%' } });
   });
   gsap.from('.info', { y: 60, opacity: 0, duration: 1, stagger: .12, ease: 'expo.out', scrollTrigger: { trigger: '.visit__info', start: 'top 85%' } });
