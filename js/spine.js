@@ -105,7 +105,8 @@ export function createSpine(container, { onReady } = {}) {
   } catch (e) { return null; }
   if (!renderer.getContext()) return null;
 
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.25 : 1.75);
   renderer.setPixelRatio(dpr);
   renderer.setClearColor(0x000000, 0);
   container.appendChild(renderer.domElement);
@@ -199,13 +200,13 @@ export function createSpine(container, { onReady } = {}) {
   const ro = new ResizeObserver(layout); ro.observe(container); layout();
 
   // visibility
-  let visible = true, raf = 0, running = false;
+  let visible = true, raf = 0, running = false, active = true;
   const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; toggle(); }, { threshold: 0 });
   io.observe(container);
   const onVis = () => toggle();
   document.addEventListener('visibilitychange', onVis);
   function toggle() {
-    const should = visible && !document.hidden;
+    const should = visible && active && !document.hidden;
     if (should && !running) { running = true; clock.getDelta(); raf = requestAnimationFrame(tick); }
     else if (!should && running) { running = false; cancelAnimationFrame(raf); }
   }
@@ -282,5 +283,6 @@ export function createSpine(container, { onReady } = {}) {
     renderer.dispose(); renderer.domElement.remove();
   }
 
-  return { params, destroy, renderer, renderOnce: () => renderer.render(scene, camera) };
+  const setActive = (v) => { active = v; toggle(); };
+  return { params, destroy, setActive, renderer, renderOnce: () => renderer.render(scene, camera) };
 }

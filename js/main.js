@@ -9,6 +9,23 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
 
 if (reduce || !gsapOK) root.classList.add('reduced');
 
+// Failsafe: even if a script error happens, never leave the page behind the loader.
+setTimeout(() => { const l = document.querySelector('.loader'); if (l) { l.remove(); window.__lenis && window.__lenis.start(); } }, 8000);
+
+/* ------------------------------------------------------------------
+   SCROLL MAP: how much extra scroll (in viewport heights) each section
+   holds still so it can be read before it moves on. Tune here.
+------------------------------------------------------------------ */
+const SCROLL_MAP = {
+  hero:  { hold: .35 },                 // headline stays put while the spine fans out
+  quote: { hold: .9 },                  // quote pins centred while each word lights up
+  care:  { lead: .3, tail: .35, perPx: 1.25 }, // pause on intro, slower per-card travel, pause on last card
+  path:  { hold: 0 },
+  visit: { travel: .55 },               // photo reels move less, so captions are readable
+  blend: .55                            // colour blend zone between sections (viewport heights)
+};
+
+
 /* ------------------------------------------------------------------
    Utilities
 ------------------------------------------------------------------ */
@@ -122,10 +139,7 @@ $$('[data-concern]').forEach((card) => card.addEventListener('click', () => {
 if (reduce || !gsapOK) {
   $('.loader') && $('.loader').remove();
   $$('.quote__text').forEach(q => q.style.opacity = 1);
-  document.body.dataset.bg = 'ink';
-  // Still keep theme switching (instant) for legibility
-  const io = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) document.body.dataset.bg = e.target.dataset.theme; }), { rootMargin: '-50% 0px -50% 0px' });
-  $$('[data-theme]').forEach(s => io.observe(s));
+  // Reduced motion: each section paints its own static tone (see CSS --tone).
   $$('.vprog').forEach(v => v.remove());
   const mb = $('.mbar');
   if (mb) {
@@ -140,9 +154,11 @@ if (reduce || !gsapOK) {
 function initMotion() {
   gsap.registerPlugin(ScrollTrigger);
   gsap.config({ nullTargetWarn: false });
+  // Phones: address-bar show/hide resizes the viewport; don't re-measure every time (that causes jumps).
+  ScrollTrigger.config({ ignoreMobileResize: true });
 
   /* ---------------- Lenis (sole smooth-scroll engine) ---------------- */
-  const lenis = new Lenis({ duration: 1.15, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true });
+  const lenis = new Lenis({ duration: 1.15, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, syncTouch: false, touchMultiplier: 1 });
   window.__lenis = lenis;
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => lenis.raf(time * 1000));
@@ -157,6 +173,9 @@ function initMotion() {
     history.replaceState(null, '', id);
     t.setAttribute('tabindex', '-1'); t.focus({ preventScroll: true });
   }));
+
+  // Hero hold pin — created first so every later trigger measures with its spacing.
+  ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * SCROLL_MAP.hero.hold, pin: true, pinSpacing: true });
 
   /* ---------------- Nav: hide on scroll down, active link ---------------- */
   const nav = $('[data-nav]');
@@ -267,13 +286,15 @@ function initMotion() {
         .to(p, { scan: -8, duration: 2.4, ease: 'power2.inOut' }, '<.8')
         .to(p, { cordAlpha: 1, duration: .8 }, '<1.2');
       // scroll: fan the column sideways as you leave the hero
-      gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1 } })
+      gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * (1 + SCROLL_MAP.hero.hold), scrub: 1 } })
         .to(p, { explode: 1, rotY: 1.6, glow: .6, ease: 'none' }, 0);
+      // stop rendering WebGL once the canvas has faded out
+      ScrollTrigger.create({ trigger: '.hero', start: 'top top', end: () => '+=' + window.innerHeight * (.65 + SCROLL_MAP.hero.hold), onToggle: (s) => sp.setActive(s.isActive) });
     });
     // ...and the canvas fades out before the pieces can drift over the facts / next section
     gsap.to('.hero__canvas', { opacity: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: () => window.innerWidth < 760 ? 'top top' : '25% top', end: () => window.innerWidth < 760 ? '40% top' : '65% top', scrub: true, invalidateOnRefresh: true } });
     // hero copy drifts upward on scroll (parallax)
-    gsap.to('.hero__inner', { yPercent: -18, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__inner', { yPercent: -14, ease: 'none', scrollTrigger: { trigger: '.hero', start: () => 'top+=' + window.innerHeight * SCROLL_MAP.hero.hold + ' top', end: () => '+=' + window.innerHeight, scrub: true, invalidateOnRefresh: true } });
     gsap.to('.hero__facts', { yPercent: -60, autoAlpha: 0, ease: 'none', scrollTrigger: { trigger: '.hero', start: '30% top', end: 'bottom top', scrub: true } });
   }
 
@@ -295,7 +316,7 @@ function initMotion() {
       const W = w();
       if (x <= -W) x += W; if (x > 0) x -= W;
       gsap.set(track, { x });
-      skew(gsap.utils.clamp(-12, 12, -v * .6 * dir));
+      if (fine) skew(gsap.utils.clamp(-12, 12, -v * .6 * dir));
     });
   });
 
@@ -327,29 +348,40 @@ function initMotion() {
     const text = q.textContent.trim();
     q.setAttribute('aria-label', text);
     q.innerHTML = text.split(' ').map(w => `<span class="qw" aria-hidden="true">${w}</span>`).join(' ');
-    gsap.to($$('.qw', q), { opacity: 1, stagger: .1, ease: 'none', scrollTrigger: { trigger: q, start: 'top 75%', end: 'bottom 45%', scrub: true } });
-    gsap.from(q, { x: () => -window.innerWidth * .06, ease: 'none', scrollTrigger: { trigger: q, start: 'top bottom', end: 'bottom top', scrub: true } });
+    const sec = q.closest('section');
+    gsap.to($$('.qw', q), { opacity: 1, stagger: .1, ease: 'none', scrollTrigger: {
+      trigger: sec, start: 'center center', end: () => '+=' + window.innerHeight * SCROLL_MAP.quote.hold, scrub: .6, pin: true, anticipatePin: 1, invalidateOnRefresh: true } });
+    gsap.from(q, { x: () => -window.innerWidth * .05, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'center center', scrub: true } });
   });
 
   /* ---------------- Care: pinned horizontal scroll ---------------- */
   const mm = gsap.matchMedia();
   const track = $('.care__track');
   const dist = () => Math.max(0, track.scrollWidth - window.innerWidth);
-  const careTween = gsap.to(track, {
-    x: () => -dist(), ease: 'none',
+  const CM = SCROLL_MAP.care, careLen = () => dist() * CM.perPx + window.innerHeight * (CM.lead + CM.tail);
+  const careTL = gsap.timeline({
+    defaults: { ease: 'none' },
     scrollTrigger: {
-      trigger: '.care', pin: '.care__pin', start: 'top top', end: () => '+=' + dist(), scrub: 1, invalidateOnRefresh: true, anticipatePin: 1,
+      trigger: '.care', pin: '.care__pin', start: 'top top', end: () => '+=' + careLen(), scrub: .8, invalidateOnRefresh: true, anticipatePin: 1,
       onUpdate: (s) => gsap.set('.care__progress i', { scaleX: s.progress })
     }
   });
+  // durations are proportional to scroll distance, so holds are real reading pauses
+  const share = () => { const L = careLen(); return { lead: window.innerHeight * CM.lead / L, move: dist() * CM.perPx / L, tail: window.innerHeight * CM.tail / L }; };
+  const sh = share();
+  careTL.to({}, { duration: sh.lead })
+        .to(track, { x: () => -dist(), duration: sh.move })
+        .to({}, { duration: sh.tail });
+  const careTween = careTL;
   // Keyboard: focusing a card scrolls the PAGE to the matching horizontal position (instead of the pin scrolling sideways)
   const pinEl = $('.care__pin');
   track.addEventListener('focusin', (e) => {
     const card = e.target.closest('.card, .care__end'); if (!card) return;
     pinEl.scrollLeft = 0;
-    const st = careTween.scrollTrigger;
+    const st = careTween.scrollTrigger, s2 = share();
     const target = gsap.utils.clamp(0, dist(), card.offsetLeft - window.innerWidth * .2);
-    lenis.scrollTo(st.start + target, { immediate: true });
+    const prog = s2.lead + (dist() ? target / dist() : 0) * s2.move;
+    lenis.scrollTo(st.start + prog * (st.end - st.start), { immediate: true });
     gsap.set(card, { opacity: 1, rotate: 0, yPercent: 0 });
   });
 
@@ -365,7 +397,7 @@ function initMotion() {
   gsap.set(draw, { strokeDasharray: len, strokeDashoffset: len });
   gsap.to(draw, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: '.path__body', start: 'top 70%', end: 'bottom 70%', scrub: true } });
   $$('.step').forEach((s) => {
-    const tl = gsap.timeline({ scrollTrigger: { trigger: s, start: 'top 78%' } });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: s, start: 'top 88%' } });
     tl.from($('.step__n', s), { opacity: 0, x: -20, duration: .6, ease: 'expo.out' })
       .from($('h3', s), { yPercent: 60, opacity: 0, duration: .9, ease: 'expo.out' }, '<.05')
       .from($('p', s), { opacity: 0, y: 20, duration: .8, ease: 'expo.out' }, '<.15');
@@ -375,7 +407,7 @@ function initMotion() {
   $$('.reel__row').forEach((row) => {
     const s = +row.dataset.speed;
     gsap.fromTo(row, { x: () => s < 0 ? 0 : -window.innerWidth * .05 }, {
-      x: () => s < 0 ? -(row.scrollWidth - window.innerWidth) * .9 : window.innerWidth * .3,
+      x: () => s < 0 ? -(row.scrollWidth - window.innerWidth) * SCROLL_MAP.visit.travel : window.innerWidth * .3 * SCROLL_MAP.visit.travel,
       ease: 'none', scrollTrigger: { trigger: '.reel', start: 'top bottom', end: 'bottom top', scrub: 1, invalidateOnRefresh: true }
     });
   });
@@ -410,14 +442,28 @@ function initMotion() {
   gsap.from('.foot__cols > div', { y: 30, opacity: 0, stagger: .08, duration: .8, ease: 'expo.out', scrollTrigger: { trigger: '.foot__cols', start: 'top 95%' } });
 
   // Created AFTER the pinned sections so their start/end include pin spacing.
-  /* ---------------- Background theme per section ---------------- */
-  document.body.dataset.bg = 'ink';
-  $$('[data-theme]').forEach((s) => {
-    ScrollTrigger.create({
-      trigger: s, start: 'top 55%', end: 'bottom 55%',
-      onToggle: (self) => { if (self.isActive) document.body.dataset.bg = s.dataset.theme; }
-    });
-  });
+  /* ---------------- Background: scroll-blended dusk tones ----------------
+     Each section declares a --tone. The body colour is interpolated by scroll
+     position across a blend zone as the next section rises, so it drifts
+     smoothly instead of switching (no flashes). */
+  root.classList.add('blend');
+  const toned = $$('main > section, .foot');
+  const stops = toned.map((s) => ({ el: s, color: getComputedStyle(s).getPropertyValue('--tone').trim() || '#0c121c', st: ScrollTrigger.create({ trigger: s, start: 'top bottom' }) }));
+  const paint = () => {
+    const y = lenis.scroll, vh = window.innerHeight, zone = vh * SCROLL_MAP.blend;
+    let color = stops[0].color;
+    for (let i = 1; i < stops.length; i++) {
+      const from = stops[i].st.start + vh * .15;           // next section's top at 85% of the viewport
+      if (y < from) break;
+      const t = gsap.utils.clamp(0, 1, (y - from) / zone);
+      color = t >= 1 ? stops[i].color : gsap.utils.interpolate(stops[i - 1].color, stops[i].color, t);
+      if (t < 1) break;
+    }
+    if (color !== paint.last) { document.body.style.backgroundColor = color; paint.last = color; }
+  };
+  lenis.on('scroll', paint);
+  ScrollTrigger.addEventListener('refresh', paint);
+  paint();
 
   $$('[data-link]').forEach((a) => {
     const s = $(a.getAttribute('href'));
